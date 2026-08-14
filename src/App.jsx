@@ -184,8 +184,9 @@ export default function App() {
       {/* ── NAV ── */}
       <nav id="nav" className={isScrolled ? 'scrolled' : ''}>
         <div className="container nav-inner">
-          <a href="#" className="nav-logo">
-            <img src="/image_trimmed.png" alt="Novarena Technologies" style={{ height: '40px', width: 'auto', objectFit: 'contain' }} />
+          <a href="#" className="nav-logo" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <img src="/logo_mark_trimmed.png" alt="Novarena logo" style={{ height: '36px', width: 'auto', objectFit: 'contain' }} />
+            <img src="/logo_text_trimmed.png" alt="Novarena Technologies" style={{ height: '20px', width: 'auto', objectFit: 'contain' }} />
           </a>
           <ul className="nav-links">
             <li>
@@ -244,6 +245,9 @@ export default function App() {
         </a>
         <a href="#contact" onClick={closeMob}>
           Contact
+        </a>
+        <a href="#products" onClick={closeMob} style={{ color: 'var(--blue-bright)' }}>
+          Explore Products →
         </a>
         <a href="#contact" onClick={closeMob} style={{ color: 'var(--blue-bright)' }}>
           Get in Touch →
@@ -848,8 +852,9 @@ export default function App() {
         <div className="container">
           <div className="footer-grid">
             <div className="footer-brand">
-              <div className="nav-logo">
-                <img src="/image_trimmed.png" alt="Novarena Technologies" style={{ height: '40px', width: 'auto', objectFit: 'contain' }} />
+              <div className="nav-logo" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <img src="/logo_mark_trimmed.png" alt="Novarena logo" style={{ height: '36px', width: 'auto', objectFit: 'contain' }} />
+                <img src="/logo_text_trimmed.png" alt="Novarena Technologies" style={{ height: '20px', width: 'auto', objectFit: 'contain' }} />
               </div>
               <p>A multi-product technology company building next-generation digital platforms across sports-tech, AI, and SaaS.</p>
               <span className="footer-tagline">Registered in India · LLP</span>

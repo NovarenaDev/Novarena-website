@@ -483,9 +483,11 @@ footer{background:#020408;border-top:1px solid var(--border);padding:72px 0 32px
   .footer-grid{grid-template-columns:1fr 1fr;gap:36px}
 }
 @media(max-width:768px){
-  .nav-links,.nav-right .btn-ghost{display:none}
+  .nav-links,.nav-right{display:none}
   .ham{display:flex}
   .hero-inner{grid-template-columns:1fr}
+  .hero-btns{flex-direction:column;width:100%;gap:12px}
+  .hero-btns .btn{width:100%;text-align:center;justify-content:center}
   .about-grid{grid-template-columns:1fr}
   .services-grid{grid-template-columns:1fr 1fr}
   .products-grid{grid-template-columns:1fr}
