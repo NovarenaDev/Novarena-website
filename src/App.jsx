@@ -1,5 +1,35 @@
 import { useEffect, useRef, useState } from 'react';
 
+// Product Links Configuration (easily customizable)
+const PRODUCT_LINKS = {
+  arenova: "https://arenova.in", // Placeholder URL for Arenova redirect
+  novaAi: "#contact",
+  novaCloud: "#contact"
+};
+
+// Simple Base64 url-safe obfuscation for nav hash paths
+const encryptPath = (path) => {
+  if (!path) return '';
+  try {
+    return btoa(path).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  } catch (e) {
+    return path;
+  }
+};
+
+const decryptPath = (encrypted) => {
+  if (!encrypted) return '';
+  try {
+    let base64 = encrypted.replace(/-/g, '+').replace(/_/g, '/');
+    while (base64.length % 4) {
+      base64 += '=';
+    }
+    return atob(base64);
+  } catch (e) {
+    return '';
+  }
+};
+
 export default function App() {
   const canvasRef = useRef(null);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -14,6 +44,8 @@ export default function App() {
   const [company, setCompany] = useState('');
   const [service, setService] = useState('');
   const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
 
   useEffect(() => {
     // ── PARTICLE CANVAS ──
@@ -111,6 +143,7 @@ export default function App() {
     animate();
 
     // ── NAVBAR SCROLL ──
+    let lastActiveSection = '';
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 30);
 
@@ -123,7 +156,12 @@ export default function App() {
           cur = s.id;
         }
       });
-      setActiveSection(cur);
+      if (cur && cur !== lastActiveSection) {
+        lastActiveSection = cur;
+        setActiveSection(cur);
+        const enc = encryptPath(cur);
+        window.history.replaceState(null, null, `#${enc}`);
+      }
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
 
@@ -142,6 +180,30 @@ export default function App() {
     );
     revEls.forEach((el) => ro.observe(el));
 
+    // ── ON LOAD / RELOAD DECRYPT HASH & SCROLL ──
+    const hash = window.location.hash.substring(1);
+    if (hash) {
+      const targetId = decryptPath(hash);
+      const validSections = ['about', 'products', 'services', 'tech', 'contact'];
+      if (validSections.includes(targetId)) {
+        setTimeout(() => {
+          const element = document.getElementById(targetId);
+          if (element) {
+            const offset = 80;
+            const bodyRect = document.body.getBoundingClientRect().top;
+            const elementRect = element.getBoundingClientRect().top;
+            const elementPosition = elementRect - bodyRect;
+            const offsetPosition = elementPosition - offset;
+            window.scrollTo({
+              top: offsetPosition,
+              behavior: 'auto'
+            });
+            setActiveSection(targetId);
+          }
+        }, 150);
+      }
+    }
+
     return () => {
       window.removeEventListener('resize', resize);
       window.removeEventListener('scroll', handleScroll);
@@ -153,18 +215,60 @@ export default function App() {
   const toggleMob = () => setIsMobOpen(!isMobOpen);
   const closeMob = () => setIsMobOpen(false);
 
-  const handleSubmit = (e) => {
+  const handleNavClick = (sectionId, e) => {
+    if (e) e.preventDefault();
+    const element = document.getElementById(sectionId);
+    if (element) {
+      const offset = 80;
+      const bodyRect = document.body.getBoundingClientRect().top;
+      const elementRect = element.getBoundingClientRect().top;
+      const elementPosition = elementRect - bodyRect;
+      const offsetPosition = elementPosition - offset;
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+      const enc = encryptPath(sectionId);
+      window.history.pushState(null, null, `#${enc}`);
+      setActiveSection(sectionId);
+    }
+    closeMob();
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Construct WhatsApp URL to send details to +91 88225 22228
-    const whatsappNumber = "918822522228";
-    const text = `Hello Novarena Technologies,\n\nI would like to get in touch. Here are my details:\n- *Name*: ${firstName} ${lastName}\n- *Email*: ${email}\n- *Company*: ${company || 'N/A'}\n- *Service*: ${service}\n- *Message*: ${message}`;
-    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(text)}`;
-    
-    // Open in a new tab
-    window.open(whatsappUrl, '_blank');
-    
-    setFormSubmitted(true);
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const response = await fetch('https://arenova-backend-production-3192.up.railway.app/api/novare/enquiries', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          email,
+          company: company || undefined,
+          serviceInterestedIn: service,
+          message,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setFormSubmitted(true);
+      } else {
+        throw new Error(data.message || 'Failed to submit enquiry. Please check your inputs and try again.');
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      setSubmitError(error.message || 'A network error occurred. Please try again later.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getLinkStyle = (hash) => {
@@ -190,36 +294,36 @@ export default function App() {
           </a>
           <ul className="nav-links">
             <li>
-              <a href="#about" style={getLinkStyle('about')}>
+              <a href={`#${encryptPath('about')}`} onClick={(e) => handleNavClick('about', e)} style={getLinkStyle('about')}>
                 About
               </a>
             </li>
             <li>
-              <a href="#products" style={getLinkStyle('products')}>
+              <a href={`#${encryptPath('products')}`} onClick={(e) => handleNavClick('products', e)} style={getLinkStyle('products')}>
                 Products
               </a>
             </li>
             <li>
-              <a href="#services" style={getLinkStyle('services')}>
+              <a href={`#${encryptPath('services')}`} onClick={(e) => handleNavClick('services', e)} style={getLinkStyle('services')}>
                 Services
               </a>
             </li>
             <li>
-              <a href="#tech" style={getLinkStyle('tech')}>
+              <a href={`#${encryptPath('tech')}`} onClick={(e) => handleNavClick('tech', e)} style={getLinkStyle('tech')}>
                 Stack
               </a>
             </li>
             <li>
-              <a href="#contact" style={getLinkStyle('contact')}>
+              <a href={`#${encryptPath('contact')}`} onClick={(e) => handleNavClick('contact', e)} style={getLinkStyle('contact')}>
                 Contact
               </a>
             </li>
           </ul>
           <div className="nav-right">
-            <a href="#contact" className="btn btn-ghost" style={{ padding: '10px 22px', fontSize: '13px' }}>
+            <a href={`#${encryptPath('contact')}`} onClick={(e) => handleNavClick('contact', e)} className="btn btn-ghost" style={{ padding: '10px 22px', fontSize: '13px' }}>
               Get in Touch
             </a>
-            <a href="#products" className="btn btn-primary" style={{ padding: '10px 22px', fontSize: '13px' }}>
+            <a href={`#${encryptPath('products')}`} onClick={(e) => handleNavClick('products', e)} className="btn btn-primary" style={{ padding: '10px 22px', fontSize: '13px' }}>
               Explore Products
             </a>
           </div>
@@ -231,25 +335,25 @@ export default function App() {
         </div>
       </nav>
       <div className={`mob-menu ${isMobOpen ? 'open' : ''}`} id="mobMenu">
-        <a href="#about" onClick={closeMob}>
+        <a href={`#${encryptPath('about')}`} onClick={(e) => handleNavClick('about', e)}>
           About
         </a>
-        <a href="#products" onClick={closeMob}>
+        <a href={`#${encryptPath('products')}`} onClick={(e) => handleNavClick('products', e)}>
           Products
         </a>
-        <a href="#services" onClick={closeMob}>
+        <a href={`#${encryptPath('services')}`} onClick={(e) => handleNavClick('services', e)}>
           Services
         </a>
-        <a href="#tech" onClick={closeMob}>
+        <a href={`#${encryptPath('tech')}`} onClick={(e) => handleNavClick('tech', e)}>
           Tech Stack
         </a>
-        <a href="#contact" onClick={closeMob}>
+        <a href={`#${encryptPath('contact')}`} onClick={(e) => handleNavClick('contact', e)}>
           Contact
         </a>
-        <a href="#products" onClick={closeMob} style={{ color: 'var(--blue-bright)' }}>
+        <a href={`#${encryptPath('products')}`} onClick={(e) => handleNavClick('products', e)} style={{ color: 'var(--blue-bright)' }}>
           Explore Products →
         </a>
-        <a href="#contact" onClick={closeMob} style={{ color: 'var(--blue-bright)' }}>
+        <a href={`#${encryptPath('contact')}`} onClick={(e) => handleNavClick('contact', e)} style={{ color: 'var(--blue-bright)' }}>
           Get in Touch →
         </a>
       </div>
@@ -271,10 +375,10 @@ export default function App() {
                 We create powerful, scalable technology solutions across industries — from sports platforms to AI-driven systems that transform how the world operates.
               </p>
               <div className="btn-grp hero-btns">
-                <a href="#products" className="btn btn-primary btn-lg">
+                <a href={`#${encryptPath('products')}`} onClick={(e) => handleNavClick('products', e)} className="btn btn-primary btn-lg">
                   Explore Our Products <span>→</span>
                 </a>
-                <a href="#contact" className="btn btn-ghost btn-lg">
+                <a href={`#${encryptPath('contact')}`} onClick={(e) => handleNavClick('contact', e)} className="btn btn-ghost btn-lg">
                   Get in Touch
                 </a>
               </div>
@@ -471,6 +575,9 @@ export default function App() {
                 <span className="tag">Node.js</span>
                 <span className="tag">PostgreSQL</span>
               </div>
+              <a href={PRODUCT_LINKS.arenova} target="_blank" rel="noopener noreferrer" className="prod-card-link link-green">
+                Visit Website ↗
+              </a>
             </div>
             <div className="prod-card pc-blue reveal reveal-delay-2">
               <div className="prod-badge badge-soon">Coming Soon</div>
@@ -485,6 +592,9 @@ export default function App() {
                 <span className="tag">LangChain</span>
                 <span className="tag">OpenAI</span>
               </div>
+              <a href={`#${encryptPath('contact')}`} onClick={(e) => handleNavClick('contact', e)} className="prod-card-link link-blue">
+                Enquire Now ↗
+              </a>
             </div>
             <div className="prod-card pc-orange reveal reveal-delay-3">
               <div className="prod-badge badge-future">In Research</div>
@@ -499,6 +609,9 @@ export default function App() {
                 <span className="tag">Microservices</span>
                 <span className="tag">Kubernetes</span>
               </div>
+              <a href={`#${encryptPath('contact')}`} onClick={(e) => handleNavClick('contact', e)} className="prod-card-link link-orange">
+                Enquire Now ↗
+              </a>
             </div>
           </div>
         </div>
@@ -712,8 +825,8 @@ export default function App() {
           <h2 className="grad-multi">Let's Build the<br />Future Together</h2>
           <p>Have a product idea or a technology challenge? We'd love to hear it. Let's turn your vision into a scalable digital reality.</p>
           <div className="btn-grp" style={{ justifyContent: 'center' }}>
-            <a href="#contact" className="btn btn-primary btn-lg">Contact Us →</a>
-            <a href="#products" className="btn btn-ghost btn-lg">View Products</a>
+            <a href={`#${encryptPath('contact')}`} onClick={(e) => handleNavClick('contact', e)} className="btn btn-primary btn-lg">Contact Us →</a>
+            <a href={`#${encryptPath('products')}`} onClick={(e) => handleNavClick('products', e)} className="btn btn-ghost btn-lg">View Products</a>
           </div>
           <div className="cta-trust">
             <div className="trust-pill">
@@ -795,41 +908,48 @@ export default function App() {
                       <div className="form-row">
                         <div className="form-group">
                           <label>First Name</label>
-                          <input type="text" placeholder="Rahul" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+                          <input type="text" placeholder="Rahul" value={firstName} onChange={(e) => setFirstName(e.target.value)} required disabled={isSubmitting} />
                         </div>
                         <div className="form-group">
                           <label>Last Name</label>
-                          <input type="text" placeholder="Sharma" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
+                          <input type="text" placeholder="Sharma" value={lastName} onChange={(e) => setLastName(e.target.value)} required disabled={isSubmitting} />
                         </div>
                       </div>
                       <div className="form-group">
                         <label>Email Address</label>
-                        <input type="email" placeholder="rahul@company.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                        <input type="email" placeholder="rahul@company.com" value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isSubmitting} />
                       </div>
                       <div className="form-group">
                         <label>Company (Optional)</label>
-                        <input type="text" placeholder="Your company name" value={company} onChange={(e) => setCompany(e.target.value)} />
+                        <input type="text" placeholder="Your company name" value={company} onChange={(e) => setCompany(e.target.value)} disabled={isSubmitting} />
                       </div>
                       <div className="form-group">
                         <label>Service Interested In</label>
-                        <select value={service} onChange={(e) => setService(e.target.value)} required>
+                        <select value={service} onChange={(e) => setService(e.target.value)} required disabled={isSubmitting}>
                           <option value="">Select a service...</option>
-                          <option>Software Development</option>
-                          <option>Mobile App Development</option>
-                          <option>SaaS Product Development</option>
-                          <option>AI & Automation</option>
-                          <option>UI/UX Design</option>
-                          <option>Partnership / Investment</option>
-                          <option>Other</option>
+                          <option value="Web Development">Web Development</option>
+                          <option value="Mobile App Development">Mobile App Development</option>
+                          <option value="UI/UX Design">UI/UX Design</option>
+                          <option value="Cloud & DevOps">Cloud & DevOps</option>
+                          <option value="Data Analytics">Data Analytics</option>
+                          <option value="AI / Machine Learning">AI / Machine Learning</option>
+                          <option value="Digital Marketing">Digital Marketing</option>
+                          <option value="IT Consulting">IT Consulting</option>
+                          <option value="Other">Other</option>
                         </select>
                       </div>
                       <div className="form-group">
                         <label>Message</label>
-                        <textarea rows="4" placeholder="Tell us about your project or idea..." value={message} onChange={(e) => setMessage(e.target.value)} required></textarea>
+                        <textarea rows="4" placeholder="Tell us about your project or idea..." value={message} onChange={(e) => setMessage(e.target.value)} required disabled={isSubmitting}></textarea>
                       </div>
+                      {submitError && (
+                        <div style={{ color: '#ff4d4d', fontSize: '13.5px', marginBottom: '16px', background: 'rgba(255, 77, 77, 0.1)', border: '1px solid rgba(255, 77, 77, 0.2)', padding: '10px 14px', borderRadius: 'var(--r-md)' }}>
+                          ⚠️ {submitError}
+                        </div>
+                      )}
                       <div className="form-submit">
-                        <button type="submit" className="btn btn-primary btn-lg">
-                          Send Message →
+                        <button type="submit" className="btn btn-primary btn-lg" disabled={isSubmitting} style={{ display: 'flex', alignItems: 'center', gap: '8px', opacity: isSubmitting ? 0.7 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}>
+                          {isSubmitting ? 'Sending Message...' : 'Send Message →'}
                         </button>
                       </div>
                     </form>
@@ -868,28 +988,28 @@ export default function App() {
             <div className="footer-col">
               <h5>Products</h5>
               <ul>
-                <li><a href="#products">Arenova</a></li>
-                <li><a href="#products">Nova AI Suite</a></li>
-                <li><a href="#products">NovaCloud SaaS</a></li>
+                <li><a href={`#${encryptPath('products')}`} onClick={(e) => handleNavClick('products', e)}>Arenova</a></li>
+                <li><a href={`#${encryptPath('products')}`} onClick={(e) => handleNavClick('products', e)}>Nova AI Suite</a></li>
+                <li><a href={`#${encryptPath('products')}`} onClick={(e) => handleNavClick('products', e)}>NovaCloud SaaS</a></li>
                 <li><a href="#">Roadmap</a></li>
               </ul>
             </div>
             <div className="footer-col">
               <h5>Services</h5>
               <ul>
-                <li><a href="#services">Software Development</a></li>
-                <li><a href="#services">Mobile Apps</a></li>
-                <li><a href="#services">AI & Automation</a></li>
-                <li><a href="#services">UI/UX Design</a></li>
+                <li><a href={`#${encryptPath('services')}`} onClick={(e) => handleNavClick('services', e)}>Software Development</a></li>
+                <li><a href={`#${encryptPath('services')}`} onClick={(e) => handleNavClick('services', e)}>Mobile Apps</a></li>
+                <li><a href={`#${encryptPath('services')}`} onClick={(e) => handleNavClick('services', e)}>AI & Automation</a></li>
+                <li><a href={`#${encryptPath('services')}`} onClick={(e) => handleNavClick('services', e)}>UI/UX Design</a></li>
               </ul>
             </div>
             <div className="footer-col">
               <h5>Company</h5>
               <ul>
-                <li><a href="#about">About Us</a></li>
+                <li><a href={`#${encryptPath('about')}`} onClick={(e) => handleNavClick('about', e)}>About Us</a></li>
                 <li><a href="#">Careers</a></li>
                 <li><a href="#">Blog</a></li>
-                <li><a href="#contact">Contact</a></li>
+                <li><a href={`#${encryptPath('contact')}`} onClick={(e) => handleNavClick('contact', e)}>Contact</a></li>
                 <li><a href="#">Privacy Policy</a></li>
               </ul>
             </div>
@@ -904,6 +1024,19 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* ── FLOATING WHATSAPP CHAT ── */}
+      <a
+        href="https://wa.me/918822522228?text=Hello!%20I%20would%20like%20to%20know%20more%20about%20Novarena%20Technologies."
+        target="_blank"
+        rel="noopener noreferrer"
+        className="whatsapp-float"
+        title="Chat on WhatsApp"
+      >
+        <svg viewBox="0 0 24 24" className="whatsapp-icon">
+          <path d="M12.012 2c-5.506 0-9.978 4.471-9.978 9.978 0 1.764.46 3.42 1.265 4.869L2 22l5.309-1.392a9.919 9.919 0 0 0 4.7 1.171c5.506 0 9.978-4.471 9.978-9.979C21.987 6.471 17.517 2 12.012 2zm0 18.294c-1.572 0-3.111-.421-4.46-1.218l-.32-.19-3.32.871.887-3.234-.21-.334c-.876-1.393-1.337-3.009-1.337-4.664 0-4.67 3.8-8.47 8.47-8.47s8.47 3.8 8.47 8.47-3.799 8.47-8.47 8.47zm4.646-6.361c-.255-.127-1.505-.742-1.738-.827-.233-.085-.403-.127-.573.128-.17.255-.658.827-.807.997-.149.17-.297.191-.552.064-.255-.127-1.077-.397-2.051-1.266-.758-.677-1.27-1.513-1.419-1.768-.149-.255-.016-.393.111-.52.115-.114.255-.298.382-.446.128-.149.17-.255.255-.425.085-.17.042-.319-.021-.446-.064-.127-.573-1.38-.785-1.89-.208-.5-.436-.432-.596-.44-.153-.008-.328-.01-.502-.01-.174 0-.457.065-.696.324-.24.259-.914.893-.914 2.178 0 1.285.934 2.527 1.064 2.7.13.173 1.838 2.808 4.453 3.937.622.268 1.107.428 1.485.548.625.199 1.194.171 1.644.104.502-.075 1.505-.615 1.717-1.21.213-.596.213-1.104.149-1.21-.064-.107-.233-.17-.488-.297z" />
+        </svg>
+      </a>
     </>
   );
 }

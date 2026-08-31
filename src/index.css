@@ -509,3 +509,123 @@ footer{background:#020408;border-top:1px solid var(--border);padding:72px 0 32px
 }
 
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* ── FLOATING WHATSAPP CHAT ── */
+.whatsapp-float {
+  position: fixed;
+  width: 56px;
+  height: 56px;
+  bottom: 30px;
+  right: 30px;
+  background-color: #25d366;
+  color: #fff;
+  border-radius: 50px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  animation: whatsapp-pulse 2s infinite;
+  text-decoration: none;
+}
+
+.whatsapp-float:hover {
+  transform: scale(1.1) rotate(5deg);
+  background-color: #20ba5a;
+  box-shadow: 0 6px 24px rgba(37, 211, 102, 0.6);
+}
+
+.whatsapp-icon {
+  width: 30px;
+  height: 30px;
+  fill: currentColor;
+}
+
+@keyframes whatsapp-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 15px rgba(37, 211, 102, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
+  }
+}
+
+/* ── PRODUCT CARD CTA LINKS ── */
+.prod-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.prod-card-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 24px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  font-family: 'Poppins', sans-serif;
+  transition: all 0.25s ease;
+  width: fit-content;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+}
+
+.prod-card-link.link-green {
+  color: var(--green);
+  background: rgba(0, 230, 118, 0.08);
+  border-color: rgba(0, 230, 118, 0.2);
+}
+
+.prod-card-link.link-green:hover {
+  background: rgba(0, 230, 118, 0.16);
+  border-color: rgba(0, 230, 118, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 230, 118, 0.15);
+}
+
+.prod-card-link.link-blue {
+  color: var(--blue-bright);
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.prod-card-link.link-blue:hover {
+  background: rgba(59, 130, 246, 0.16);
+  border-color: rgba(59, 130, 246, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.prod-card-link.link-orange {
+  color: var(--orange);
+  background: rgba(255, 109, 0, 0.08);
+  border-color: rgba(255, 109, 0, 0.2);
+}
+
+.prod-card-link.link-orange:hover {
+  background: rgba(255, 109, 0, 0.16);
+  border-color: rgba(255, 109, 0, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 109, 0, 0.15);
+}
+
+@media(max-width: 768px) {
+  .whatsapp-float {
+    width: 48px;
+    height: 48px;
+    bottom: 20px;
+    right: 20px;
+  }
+  .whatsapp-icon {
+    width: 24px;
+    height: 24px;
+  }
+}
+
