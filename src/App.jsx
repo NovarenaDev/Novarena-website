@@ -10,8 +10,8 @@ const PRODUCT_LINKS = {
   novaCloud: "#contact"
 };
 
-// API Base URL (Configurable via environment or defaults to backend IP)
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://16.112.182.86').replace(/\/+$/, '');
+// API Base URL (CloudFront HTTPS proxy for backend EC2 API, or custom via VITE_API_BASE_URL)
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://d1hjf3i8c56eq4.cloudfront.net').replace(/\/+$/, '');
 
 // Helper to determine initial route based on path or hash
 const getInitialRoute = () => {
@@ -271,7 +271,11 @@ export default function App() {
         message: message.trim(),
       });
 
-      const endpoint = `${API_BASE_URL}/api/novare/enquiries`;
+      const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+      const endpoint = (isHttps && !import.meta.env.VITE_API_BASE_URL)
+        ? '/api/novare/enquiries'
+        : `${API_BASE_URL}/api/novare/enquiries`;
+
       let response;
 
       try {
@@ -283,20 +287,19 @@ export default function App() {
           body: payload,
         });
       } catch (fetchErr) {
-        // Fallback: If deployed on HTTPS (e.g. AWS Amplify) and direct HTTP request is blocked by browser,
-        // attempt relative path /api/novare/enquiries via reverse proxy rewrite
-        if (typeof window !== 'undefined' && window.location.protocol === 'https:' && endpoint.startsWith('http://')) {
-          console.warn('Direct HTTP fetch blocked on HTTPS; attempting relative /api/novare/enquiries endpoint');
-          response = await fetch('/api/novare/enquiries', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: payload,
-          });
-        } else {
-          throw fetchErr;
-        }
+        // Fallback: If relative /api failed (e.g. rewrite not applied yet), try direct CloudFront HTTPS URL
+        const fallbackEndpoint = endpoint === '/api/novare/enquiries'
+          ? `${API_BASE_URL}/api/novare/enquiries`
+          : '/api/novare/enquiries';
+
+        console.warn(`Primary fetch to ${endpoint} failed (${fetchErr.message}); attempting fallback to ${fallbackEndpoint}`);
+        response = await fetch(fallbackEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: payload,
+        });
       }
 
       const data = await response.json();
