@@ -672,7 +672,21 @@ export default function App() {
               </div>
               <div className="products-grid">
                 {/* Arenova Card */}
-                <div className="prod-card pc-green reveal reveal-delay-1">
+                <div
+                  className="prod-card pc-green reveal reveal-delay-1"
+                  onClick={() => {
+                    window.open(PRODUCT_LINKS.arenova, '_blank', 'noopener,noreferrer');
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      window.open(PRODUCT_LINKS.arenova, '_blank', 'noopener,noreferrer');
+                    }
+                  }}
+                  title="Visit Arenova — getarenova.com"
+                >
                   <div className="prod-badge badge-live">
                     <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--green)', display: 'inline-block' }}></span>Live
                   </div>
@@ -692,6 +706,9 @@ export default function App() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="prod-card-link link-green"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                    }}
                   >
                     Visit getarenova.com ↗
                   </a>
